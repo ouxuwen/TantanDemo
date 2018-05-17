@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .warp {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .card_container {
+            width: 70%;
+            height: 70%;
+            position: relative;
+            perspective: 1000px;
+            perspective-origin: 50% 150%;
+            -webkit-perspective: 1000px;
+            -webkit-perspective-origin: 50% 150%;
+        }
+
+        .card {
+            transform-style: preserve-3d;
+            width: 100%;
+            height: 100%;
+            box-shadow: 0 0 10px 3px #c5c4c4;
+            border-radius: 5px;
+            position: absolute;
+            background: #ffffff;
+            opacity: 0;
+            text-align: center;
+            font-size: 30px;
+            line-height: 1;
+            overflow: hidden;
+        }
+
+        .card img {
+            height: 100%;
+        }
+        .btn_group{
+           text-align: center;
+           position: fixed;
+           bottom: 20px; 
+        }
+        .btn_group span{
+            width:50px;
+            height: 50px;
+            line-height: 50px;
+            display: inline-block;
+            text-align: center;
+            border-radius: 50%;
+            color:#ffffff;
+            font-size: 30px;
+            font-weight: bold;
+            margin: 0 20px;
+            cursor: pointer;
+            user-select: none;
+
+        }   
+        .btn_group span:first-child{
+            background: #56bb56;
+        }
+        .btn_group span:nth-child(2){
+            background: #fd7575;
+        }
+    </style>
+    <script src='vue.js'></script>
+</head>
+
+<body>
+    <div class="warp" id="app">
+        <div class="card_container">
+            <div 
+                @touchstart.stop.capture='touchStart($event)' 
+                @touchmove.stop.capture='touchMove($event)' 
+                @touchend.stop.capture='touchEnd($event)'
+                @mousedown.stop.capture='touchStart($event)' 
+                @mousemove.stop.capture='touchMove($event)' 
+                @mouseup.stop.capture='touchEnd($event)'
+                @transitionend='onTransitionEnd(index)' 
+                ondragstart="return false" 
+                class="card" v-for='(item,index) in arr' :key="item.id"
+                :style="[cardTransform(index),indexTransform(index)]">
+                <img :src='item.src'></img>
+            </div>
+
+        </div>
+
+        <div class="btn_group">
+            <span @click='choose(-1)'>√</span>
+            <span @click='choose(1)'>&times;</span>
+        </div>
+    </div>
+
+</body>
+
+<script>
+    var myApp = new Vue({
+        el: "#app",
+        data: {
+            arr: [
+                { src: '/slide2.jpeg' }, { src: '/slide3.jpeg' }, { src: '/slide4.jpeg' }, { src: '/slide5.jpeg' },
+                { src: '/slide2.jpeg' }, { src: '/slide3.jpeg' }, { src: '/slide4.jpeg' }, { src: '/slide5.jpeg' },
+                { src: '/slide2.jpeg' }, { src: '/slide3.jpeg' }, { src: '/slide4.jpeg' }, { src: '/slide5.jpeg' },
+                { src: '/slide2.jpeg' }, { src: '/slide3.jpeg' }, { src: '/slide4.jpeg' }, { src: '/slide5.jpeg' },
+                { src: '/slide2.jpeg' }, { src: '/slide3.jpeg' }, { src: '/slide4.jpeg' }, { src: '/slide5.jpeg' },
+                { src: '/slide2.jpeg' }, { src: '/slide3.jpeg' }, { src: '/slide4.jpeg' }, { src: '/slide5.jpeg' },
+                { src: '/slide2.jpeg' }, { src: '/slide3.jpeg' }, { src: '/slide4.jpeg' }, { src: '/slide5.jpeg' },
+                { src: '/slide2.jpeg' }, { src: '/slide3.jpeg' }, { src: '/slide4.jpeg' }, { src: '/slide5.jpeg' },
+            ],
+            // 当前展示的图片index
+            currentIndex: 0,
+            //记录偏移量
+            displacement: {
+                x: 0,
+                y: 0
+            },
+            // 位置信息
+            position: {
+                start: { x: 0, y: 0 },
+                end: { x: 0, y: 0 },
+                direction: 1,  //滑动方向，左是-1，右是1
+                swipping: false
+            },
+            // 显示图片的堆叠数量
+            visible: 3,
+            // 视口宽度
+            winWidth: 0,
+            //  滑动阈值
+            slideWidth:100,
+            // 超过阈值时的自动偏移量
+            offsetWidth:200
+        },
+        created: function () {
+            this.winWidth = window.innerWidth;
+        },
+        methods: {
+            touchStart: function (e) {
+            // 记录点击时的起始位置
+                if (e.type === 'touchstart') {
+                    //手机端    
+                    this.position.start['x'] = e.targetTouches[0].clientX;
+                    this.position.start['y'] = e.targetTouches[0].clientY;
+                } else {
+                   //PC端
+                    this.position.start['x'] = e.x;
+                    this.position.start['y'] = e.y;
+                }
+                this.position.swipping = true;
+            },
+            touchMove: function (e) {
+                 // 记录拖动时的位移
+                if (!this.position.swipping) return;
+                if (e.type === 'touchmove') {
+                    // 手机端
+                    this.displacement.x = e.targetTouches[0].clientX - this.position.start.x;
+                    this.displacement.y = e.targetTouches[0].clientY - this.position.start.y;
+                } else {
+                    // PC端
+                    this.displacement.x = e.x - this.position.start.x;
+                    this.displacement.y = 0;
+                }
+
+            },
+            touchEnd: function (e) {
+
+                this.position.swipping = false;
+                this.position.end['x'] = this.displacement.x;
+                this.position.end['y'] = this.displacement.y;
+
+                //判断滑动距离超过设定值时，自动飞出
+                if (this.displacement.x > this.slideWidth) {
+
+                    this.position.direction = 1;
+                    this.currentIndex++;
+                    this.position.end['x'] += this.offsetWidth;
+                    this.position.end['y'] += this.offsetWidth/2;
+
+                } else if (this.displacement.x < -this.slideWidth) {
+                    this.position.direction = -1;
+                    this.currentIndex++;
+                    this.position.end['x'] -= this.offsetWidth;
+                    this.position.end['y'] += this.offsetWidth/2;
+
+                } else {
+
+                }
+                this.$nextTick(() => {
+                    this.displacement.x = 0;
+                    this.displacement.y = 0;
+                })
+
+
+            },
+            onTransitionEnd: function (index) {
+                // 过渡动画完成时
+                if (this.currentIndex === index + 1) {
+                    this.position.end.x = 0;
+                    this.position.end.y = 0;
+                }
+            },
+            cardTransform: function (index) {
+                //每个图片的样式
+                let style = {};
+                style['opacity'] = ((index - this.currentIndex) > 2 || (index - this.currentIndex) < 0) ? 0 : 1;
+                style['z-index'] = this.currentIndex - index + this.visible;
+                style['transform'] = `translate3d(0,0,${(this.currentIndex - index) * 60}px)`;
+
+                if (index - this.currentIndex < 0) {
+
+                    style['opacity'] = 0;
+                    style['z-index'] = -1;
+                    style['transform'] = `translate3d(${this.position.end.x}px,${this.position.end.y}px,${(this.currentIndex - index) * 60}px) rotate(${this.position.direction * 90}deg)`;
+                }
+
+                //非手势滑动状态才添加过渡动画
+                if (!this.position.swipping) {
+                    style['transitionTimingFunction'] = 'ease'
+                    style['transitionDuration'] = 300 + 'ms'
+                }
+                return style;
+            },
+            indexTransform: function (index) {
+                //首图片的样式
+                let style = {};
+                if (index === this.currentIndex) {
+                    style['transform'] = ` translate3d(${this.displacement.x}px,${this.displacement.y}px,${(this.currentIndex - index) * 60}px) rotate(${this.displacement.x / this.winWidth * 90}deg)`;
+                }
+                //非手势滑动状态才添加过渡动画
+                if (!this.position.swipping) {
+                    style['transitionTimingFunction'] = 'ease'
+                    style['transitionDuration'] = 300 + 'ms'
+                }
+
+                return style;
+            },
+            choose:function(i){
+                //靠按钮选择
+                this.currentIndex++;
+                this.position.direction= i;
+                this.position.end.x = i*this.offsetWidth;
+                this.position.end.y = this.offsetWidth/2;
+            }
+        }
+    })
+
+</script>
+
+</html>
